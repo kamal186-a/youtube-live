@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install tools
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg wget
 
-      - name: Download video from Google Drive
+      - name: Download video
         run: |
           wget --no-check-certificate \
             "https://drive.usercontent.google.com/download?id=12cZJHy-e6H1UUDn1Hwj2vZaNCJ0HI6L4&export=download&confirm=t" \
@@ -27,9 +27,12 @@ jobs:
             -i video.mp4 \
             -c:v libx264 \
             -preset veryfast \
-            -b:v 2500k \
-            -maxrate 2500k \
-            -bufsize 5000k \
+            -b:v 6800k \
+            -maxrate 6800k \
+            -bufsize 13600k \
+            -g 60 \
+            -keyint_min 60 \
+            -sc_threshold 0 \
             -c:a aac \
             -b:a 128k \
             -ar 44100 \
