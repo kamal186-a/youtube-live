@@ -1,0 +1,37 @@
+name: YouTube Live
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg wget
+
+      - name: Download video from Google Drive
+        run: |
+          wget --no-check-certificate \
+            "https://drive.usercontent.google.com/download?id=12cZJHy-e6H1UUDn1Hwj2vZaNCJ0HI6L4&export=download&confirm=t" \
+            -O video.mp4
+
+      - name: Start YouTube Live
+        env:
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+        run: |
+          ffmpeg -re -stream_loop -1 \
+            -i video.mp4 \
+            -c:v libx264 \
+            -preset veryfast \
+            -b:v 2500k \
+            -maxrate 2500k \
+            -bufsize 5000k \
+            -c:a aac \
+            -b:a 128k \
+            -ar 44100 \
+            -f flv \
+            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
