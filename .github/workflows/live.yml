@@ -16,9 +16,7 @@ jobs:
       - name: Download video
         run: |
           wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=136yBfF3ZD9TVP91jrj4khXt6J7G2cYJD
-
-&export=download&confirm=t" \
+            "https://drive.usercontent.google.com/download?id=136yBfF3ZD9TVP91jrj4khXt6J7G2cYJD&export=download&confirm=t" \
             -O video.mp4
 
       - name: Start YouTube Live
