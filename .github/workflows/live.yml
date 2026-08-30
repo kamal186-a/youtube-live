@@ -1,4 +1,4 @@
-name: YouTube Live
+name: YouTube Vertical Live - Loop
 
 on:
   workflow_dispatch:
@@ -6,7 +6,6 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
 
     steps:
       - name: Install FFmpeg
@@ -14,27 +13,41 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg wget
 
-      - name: Download video
+      - name: Download Google Drive Video
         run: |
           wget --no-check-certificate \
             "https://drive.usercontent.google.com/download?id=1bQWaDp7i7csZu1ooLfu7C3QHZwQkTA9x&export=download&confirm=t" \
             -O video.mp4
 
-      - name: Start YouTube Vertical Live
+      - name: Check files
+        run: |
+          ls -lh video.mp4
+          ls -lh subscribe.png
+
+      - name: Start YouTube Vertical Live - Infinite Loop
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+
         run: |
           ffmpeg -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[main];[blur][main]overlay=(W-w)/2:(H-h)/2,drawtext=text='Subscribe Please':fontcolor=white:fontsize=55:borderw=3:bordercolor=black:x=(w-text_w)/2:y=60,setsar=1[v]" \
-            -map "[v]" \
+            -loop 1 \
+            -i subscribe.png \
+            -filter_complex "
+              [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
+              pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
+
+              [1:v]scale=650:-1[subscribe];
+
+              [video][subscribe]
+              overlay=(W-w)/2:80:shortest=1
+              [outv]
+            " \
+            -map "[outv]" \
             -map 0:a? \
             -c:v libx264 \
             -preset veryfast \
-            -profile:v high \
-            -pix_fmt yuv420p \
-            -r 30 \
             -b:v 6800k \
             -maxrate 6800k \
             -bufsize 13600k \
@@ -44,6 +57,5 @@ jobs:
             -c:a aac \
             -b:a 128k \
             -ar 44100 \
-            -ac 2 \
             -f flv \
             "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
