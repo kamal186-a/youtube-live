@@ -8,23 +8,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install FFmpeg
+      - name: Install FFmpeg and yt-dlp
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget
+          sudo apt-get install -y ffmpeg
+          python3 -m pip install -U yt-dlp
 
-      - name: Download video
+      - name: Get YouTube video stream
         run: |
-          wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1AmxYKgSraCJuWopWSWXT1SFsjNUXKOa0&export=download&confirm=t" \
-            -O video.mp4
+          yt-dlp \
+            -f "best[ext=mp4]/best" \
+            --get-url \
+            "https://www.youtube.com/watch?v=bNH_4jhFAOE" > video_url.txt
 
       - name: Start YouTube Live
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
+          VIDEO_URL=$(cat video_url.txt)
+
           ffmpeg -re -stream_loop -1 \
-            -i video.mp4 \
+            -i "$VIDEO_URL" \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6800k \
