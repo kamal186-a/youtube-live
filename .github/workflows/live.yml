@@ -21,7 +21,7 @@ jobs:
       - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget
+          sudo apt-get install -y ffmpeg wget fonts-noto-core
 
       # ==============================
       # 3. Download Video from Google Drive
@@ -29,7 +29,7 @@ jobs:
       - name: Download Google Drive Video
         run: |
           wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1bQWaDp7i7csZu1ooLfu7C3QHZwQkTA9x&export=download&confirm=t" \
+            "https://drive.usercontent.google.com/download?id=1LZICk4PJTgM6pw5xoEDq1A7wwAPRU1y8&export=download&confirm=t" \
             -O video.mp4
 
       # ==============================
@@ -58,18 +58,27 @@ jobs:
             -loop 1 \
             -i subscribe.png \
             -filter_complex "
-              [0:v]
-              scale=1080:1920:force_original_aspect_ratio=decrease,
-              pad=1080:1920:(ow-iw)/2:(oh-ih)/2
-              [video];
+  [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
+  pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
 
-              [1:v]
-              scale=650:-1
-              [subscribe];
+  [1:v]scale=650:-1[subscribe];
 
-              [video][subscribe]
-              overlay=(W-w)/2:80
-              [outv]
+  [video][subscribe]
+  overlay=(W-w)/2:80
+  [withsub];
+
+  [withsub]
+  drawtext=text='اللہ پاک کے لیے رک جاؤ':
+  fontfile=/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf:
+  fontcolor=white:
+  fontsize=65:
+  x=(w-text_w)/2:
+  y=h-180:
+  box=1:
+  boxcolor=black@0.65:
+  boxborderw=15
+  [outv]
+"
             " \
             -map "[outv]" \
             -map 0:a? \
