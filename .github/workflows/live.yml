@@ -1,48 +1,3 @@
-name: YouTube Vertical Live - Loop
-
-on:
-  workflow_dispatch:
-
-jobs:
-  stream:
-    runs-on: ubuntu-latest
-
-    steps:
-
-      # ==============================
-      # 1. Download Repository Files
-      # ==============================
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      # ==============================
-      # 2. Install FFmpeg and Wget
-      # ==============================
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg wget fonts-noto-core
-
-      # ==============================
-      # 3. Download Video from Google Drive
-      # ==============================
-      - name: Download Google Drive Video
-        run: |
-          wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1LZICk4PJTgM6pw5xoEDq1A7wwAPRU1y8&export=download&confirm=t" \
-            -O video.mp4
-
-      # ==============================
-      # 4. Check Files
-      # ==============================
-      - name: Check Files
-        run: |
-          echo "Checking video..."
-          ls -lh video.mp4
-
-          echo "Checking Subscribe image..."
-          ls -lh subscribe.png
-
       # ==============================
       # 5. Start YouTube Vertical Live
       # ==============================
@@ -58,27 +13,19 @@ jobs:
             -loop 1 \
             -i subscribe.png \
             -filter_complex "
-  [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
-  pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
-
-  [1:v]scale=650:-1[subscribe];
-
-  [video][subscribe]
-  overlay=(W-w)/2:80
-  [withsub];
-
-  [withsub]
-  drawtext=text='اللہ پاک کے لیے رک جاؤ':
-  fontfile=/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf:
-  fontcolor=white:
-  fontsize=65:
-  x=(w-text_w)/2:
-  y=h-180:
-  box=1:
-  boxcolor=black@0.65:
-  boxborderw=15
-  [outv]
-"
+              [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
+              pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
+              [1:v]scale=650:-1[subscribe];
+              [video][subscribe]overlay=(W-w)/2:80[withsub];
+              [withsub]drawtext=text='اللہ پاک کے لیے رک جاؤ':
+              fontfile=/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf:
+              fontcolor=white:
+              fontsize=65:
+              x=(w-text_w)/2:
+              y=h-180:
+              box=1:
+              boxcolor=black@0.65:
+              boxborderw=15[outv]
             " \
             -map "[outv]" \
             -map 0:a? \
