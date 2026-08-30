@@ -6,6 +6,7 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
       - name: Install FFmpeg
@@ -19,15 +20,26 @@ jobs:
             "https://drive.usercontent.google.com/download?id=1bQWaDp7i7csZu1ooLfu7C3QHZwQkTA9x&export=download&confirm=t" \
             -O video.mp4
 
-      - name: Start YouTube Live
+      - name: Check downloaded video
+        run: |
+          ls -lh video.mp4
+          ffprobe -v error -show_entries format=duration \
+            -of default=noprint_wrappers=1:nokey=1 video.mp4
+
+      - name: Start Vertical YouTube Live
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          ffmpeg -re -stream_loop -1 \
+          ffmpeg -re \
+            -stream_loop -1 \
             -i video.mp4 \
-            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" \
+            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1" \
             -c:v libx264 \
             -preset veryfast \
+            -profile:v high \
+            -level 4.2 \
+            -pix_fmt yuv420p \
+            -r 30 \
             -b:v 6800k \
             -maxrate 6800k \
             -bufsize 13600k \
@@ -37,5 +49,6 @@ jobs:
             -c:a aac \
             -b:a 128k \
             -ar 44100 \
+            -ac 2 \
             -f flv \
             "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
