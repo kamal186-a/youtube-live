@@ -10,7 +10,13 @@ jobs:
     steps:
 
       # ==============================
-      # 1. Install FFmpeg and Wget
+      # 1. Download Repository Files
+      # ==============================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ==============================
+      # 2. Install FFmpeg and Wget
       # ==============================
       - name: Install FFmpeg
         run: |
@@ -18,7 +24,7 @@ jobs:
           sudo apt-get install -y ffmpeg wget
 
       # ==============================
-      # 2. Download Video from Google Drive
+      # 3. Download Video from Google Drive
       # ==============================
       - name: Download Google Drive Video
         run: |
@@ -27,7 +33,7 @@ jobs:
             -O video.mp4
 
       # ==============================
-      # 3. Check Video and Subscribe Image
+      # 4. Check Files
       # ==============================
       - name: Check Files
         run: |
@@ -38,7 +44,7 @@ jobs:
           ls -lh subscribe.png
 
       # ==============================
-      # 4. Start YouTube Vertical Live
+      # 5. Start YouTube Vertical Live
       # ==============================
       - name: Start YouTube Vertical Live
         env:
