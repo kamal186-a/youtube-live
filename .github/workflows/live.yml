@@ -25,6 +25,7 @@ jobs:
         run: |
           ffmpeg -re -stream_loop -1 \
             -i video.mp4 \
+            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6800k \
