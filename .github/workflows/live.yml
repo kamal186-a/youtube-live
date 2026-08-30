@@ -20,24 +20,19 @@ jobs:
             "https://drive.usercontent.google.com/download?id=1bQWaDp7i7csZu1ooLfu7C3QHZwQkTA9x&export=download&confirm=t" \
             -O video.mp4
 
-      - name: Check downloaded video
-        run: |
-          ls -lh video.mp4
-          ffprobe -v error -show_entries format=duration \
-            -of default=noprint_wrappers=1:nokey=1 video.mp4
-
-      - name: Start Vertical YouTube Live
+      - name: Start YouTube Vertical Live
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
           ffmpeg -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1" \
+            -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:10[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[main];[blur][main]overlay=(W-w)/2:(H-h)/2,drawtext=text='Subscribe Please':fontcolor=white:fontsize=55:borderw=3:bordercolor=black:x=(w-text_w)/2:y=60,setsar=1[v]" \
+            -map "[v]" \
+            -map 0:a? \
             -c:v libx264 \
             -preset veryfast \
             -profile:v high \
-            -level 4.2 \
             -pix_fmt yuv420p \
             -r 30 \
             -b:v 6800k \
