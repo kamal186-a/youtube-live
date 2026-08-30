@@ -19,11 +19,6 @@ jobs:
             "https://drive.usercontent.google.com/download?id=1bQWaDp7i7csZu1ooLfu7C3QHZwQkTA9x&export=download&confirm=t" \
             -O video.mp4
 
-      - name: Check files
-        run: |
-          ls -lh video.mp4
-          ls -lh subscribe.png
-
       - name: Start YouTube Vertical Live - Infinite Loop
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
@@ -32,20 +27,7 @@ jobs:
           ffmpeg -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -loop 1 \
-            -i subscribe.png \
-            -filter_complex "
-              [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
-              pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
-
-              [1:v]scale=650:-1[subscribe];
-
-              [video][subscribe]
-              overlay=(W-w)/2:80:shortest=1
-              [outv]
-            " \
-            -map "[outv]" \
-            -map 0:a? \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,drawtext=text='SUBSCRIBE':fontcolor=white:fontsize=90:font='DejaVu Sans Bold':x=(w-text_w)/2:y=80:box=1:boxcolor=red@1.0:boxborderw=25" \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6800k \
