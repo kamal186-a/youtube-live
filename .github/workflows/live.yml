@@ -5,40 +5,118 @@ on:
 
 jobs:
   stream:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
 
     steps:
-      - name: Install FFmpeg and yt-dlp
+      - name: Install FFmpeg
+        shell: powershell
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          python3 -m pip install -U yt-dlp
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            New-Item -ItemType Directory -Force -Path C:\stream-tools | Out-Null
 
-      - name: Get YouTube video stream
+            Invoke-WebRequest `
+              -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
+              -OutFile "C:\stream-tools\ffmpeg.zip"
+
+            Expand-Archive `
+              -Path "C:\stream-tools\ffmpeg.zip" `
+              -DestinationPath "C:\stream-tools\ffmpeg" `
+              -Force
+
+            $ffmpegExe = Get-ChildItem `
+              "C:\stream-tools\ffmpeg" `
+              -Filter ffmpeg.exe `
+              -Recurse |
+              Select-Object -First 1
+
+            [Environment]::SetEnvironmentVariable(
+              "FFMPEG_BIN",
+              $ffmpegExe.FullName,
+              "Machine"
+            )
+          }
+
+      - name: Install yt-dlp
+        shell: powershell
         run: |
-          yt-dlp \
-            -f "best[ext=mp4]/best" \
-            --get-url \
-            "https://www.youtube.com/watch?v=bNH_4jhFAOE" > video_url.txt
+          New-Item -ItemType Directory -Force -Path C:\stream-tools\yt-dlp | Out-Null
+
+          Invoke-WebRequest `
+            -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
+            -OutFile "C:\stream-tools\yt-dlp\yt-dlp.exe"
+
+      - name: Install Deno
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path C:\stream-tools\deno | Out-Null
+
+          Invoke-WebRequest `
+            -Uri "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" `
+            -OutFile "C:\stream-tools\deno\deno.zip"
+
+          Expand-Archive `
+            -Path "C:\stream-tools\deno\deno.zip" `
+            -DestinationPath "C:\stream-tools\deno" `
+            -Force
+
+      - name: Test software
+        shell: powershell
+        run: |
+          & "C:\stream-tools\yt-dlp\yt-dlp.exe" --version
+          & "C:\stream-tools\deno\deno.exe" --version
+          & "$env:FFMPEG_BIN" -version
+
+      - name: Get YouTube media URL
+        shell: powershell
+        run: |
+          $videoUrl = "https://www.youtube.com/watch?v=bNH_4jhFAOE"
+
+          & "C:\stream-tools\yt-dlp\yt-dlp.exe" `
+            --js-runtimes "deno:C:\stream-tools\deno\deno.exe" `
+            --cookies-from-browser chrome `
+            --remote-components ejs:github `
+            -f "b[ext=mp4]/b" `
+            --get-url `
+            $videoUrl | Out-File `
+              -FilePath "video_url.txt" `
+              -Encoding ascii
+
+          if (-not (Test-Path "video_url.txt")) {
+            throw "video_url.txt was not created."
+          }
+
+          $mediaUrl = (Get-Content "video_url.txt" | Select-Object -First 1).Trim()
+
+          if ([string]::IsNullOrWhiteSpace($mediaUrl)) {
+            throw "YouTube media URL could not be obtained."
+          }
+
+          Write-Host "YouTube media URL obtained successfully."
 
       - name: Start YouTube Live
+        shell: powershell
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          VIDEO_URL=$(cat video_url.txt)
+          if ([string]::IsNullOrWhiteSpace($env:STREAM_KEY)) {
+            throw "YOUTUBE_STREAM_KEY GitHub Secret is missing."
+          }
 
-          ffmpeg -re -stream_loop -1 \
-            -i "$VIDEO_URL" \
-            -c:v libx264 \
-            -preset veryfast \
-            -b:v 6800k \
-            -maxrate 6800k \
-            -bufsize 13600k \
-            -g 60 \
-            -keyint_min 60 \
-            -sc_threshold 0 \
-            -c:a aac \
-            -b:a 128k \
-            -ar 44100 \
-            -f flv \
-            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+          $mediaUrl = (Get-Content "video_url.txt" | Select-Object -First 1).Trim()
+
+          & "$env:FFMPEG_BIN" `
+            -re `
+            -i "$mediaUrl" `
+            -c:v libx264 `
+            -preset veryfast `
+            -b:v 6800k `
+            -maxrate 6800k `
+            -bufsize 13600k `
+            -g 60 `
+            -keyint_min 60 `
+            -sc_threshold 0 `
+            -c:a aac `
+            -b:a 128k `
+            -ar 44100 `
+            -f flv `
+            "rtmp://a.rtmp.youtube.com/live2/$env:STREAM_KEY"
