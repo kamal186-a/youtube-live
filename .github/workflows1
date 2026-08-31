@@ -1,4 +1,4 @@
-name: YouTube Vertical Live - Loop
+name: YouTube Vertical Live 1 - Loop
 
 on:
   workflow_dispatch:
