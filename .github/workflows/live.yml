@@ -1,4 +1,4 @@
-name: Facebook Live Stream to YouTube
+name: Facebook Live Stream to YouTube (Vertical & Loop)
 
 on:
   workflow_dispatch:
@@ -30,9 +30,12 @@ jobs:
             exit 1
           fi
 
-          echo "Direct Link retrieved successfully. Pushing stream to YouTube..."
+          echo "Direct Link retrieved successfully. Starting Loop & Vertical Stream to YouTube..."
 
-          ffmpeg -re -i "$DIRECT_STREAM_URL" \
+          # -stream_loop -1 se video infinite loop par chalegi
+          # -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2" se video Vertical (9:16) format mein ho jayegi
+          ffmpeg -re -stream_loop -1 -i "$DIRECT_STREAM_URL" \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1" \
             -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
             -c:a aac -b:a 128k -ar 44100 \
             -f flv "rtmp://a.rtmp.youtube.com/live2/$YOUTUBE_STREAM_KEY"
