@@ -1,4 +1,4 @@
-name: YouTube Vertical Live - Loop
+name: Facebook Live Stream to YouTube
 
 on:
   workflow_dispatch:
@@ -8,75 +8,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg and Fonts
+      - name: Install FFmpeg and yt-dlp
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget fonts-noto-core
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install --upgrade yt-dlp
 
-      - name: Download Google Drive Video
-        run: |
-          wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1LZICk4PJTgM6pw5xoEDq1A7wwAPRU1y8&export=download&confirm=t" \
-            -O video.mp4
-
-      - name: Check Files
-        run: |
-          echo "Checking video..."
-          ls -lh video.mp4
-          echo "Checking Subscribe image..."
-          ls -lh subscribe.png
-
-      - name: Start YouTube Vertical Live
+      - name: Fetch Video Link & Push Stream to YouTube
         env:
-          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
-
+          YOUTUBE_STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+          FB_URL: "https://www.facebook.com/share/v/1FCq9pEybS/"
         run: |
-          ffmpeg \
-            -re \
-            -stream_loop -1 \
-            -i video.mp4 \
-            -loop 1 \
-            -i subscribe.png \
-            -filter_complex "
-              [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
-              pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
+          echo "Extracting direct video URL from Facebook link..."
+          DIRECT_STREAM_URL=$(yt-dlp -f "best" -g "$FB_URL")
 
-              [1:v]scale=650:-1[subscribe];
+          if [ -z "$DIRECT_STREAM_URL" ]; then
+            echo "Error: Facebook video URL extract nahi hua!"
+            exit 1
+          fi
 
-              [video][subscribe]
-              overlay=(W-w)/2:80[withsub];
+          echo "Direct Link retrieved successfully. Pushing stream to YouTube..."
 
-              [withsub]
-              drawtext=text='اللہ پاک کے لیے رک جاؤ':
-              fontfile=/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf:
-              fontcolor=white:
-              fontsize=65:
-              x=(w-text_w)/2:
-              y=h-180:
-              box=1:
-              boxcolor=black@0.65:
-              boxborderw=15[outv]
-            " \
-            -map "[outv]" \
-            -map 0:a? \
-            -c:v libx264 \
-            -preset veryfast \
-            -profile:v high \
-            -pix_fmt yuv420p \
-            -b:v 6800k \
-            -maxrate 6800k \
-            -bufsize 13600k \
-            -r 30 \
-            -g 60 \
-            -keyint_min 60 \
-            -sc_threshold 0 \
-            -c:a aac \
-            -b:a 128k \
-            -ar 44100 \
-            -ac 2 \
-            -f flv \
-            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+          ffmpeg -re -i "$DIRECT_STREAM_URL" \
+            -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/$YOUTUBE_STREAM_KEY"
