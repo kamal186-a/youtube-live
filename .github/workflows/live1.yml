@@ -32,7 +32,7 @@ jobs:
 
       - name: Start YouTube Vertical Live
         env:
-          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY1 }}
 
         run: |
           ffmpeg \
