@@ -8,7 +8,7 @@ LOCAL_VIDEO_PATH="video.mp4"
 FACEBOOK_STREAM_KEY="FB-122193920732780799-0-Ab4JgxUm67HqqOAuoVJlmviL"
 FACEBOOK_RTMP_URL="rtmps://live-api-s.facebook.com:443/rtmp/${FACEBOOK_STREAM_KEY}"
 
-YOUTUBE_STREAM_KEY="qpcb-3zs7-m3hj-ygse-6e0c"
+YOUTUBE_STREAM_KEY="2zjw-jyhg-bpx7-2e47-fj6m"
 YOUTUBE_RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${YOUTUBE_STREAM_KEY}"
 
 # ---------- Google Drive سے ویڈیو ڈاؤن لوڈ کریں ----------
