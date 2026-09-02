@@ -22,7 +22,7 @@ echo "ڈاؤن لوڈ مکمل: $LOCAL_VIDEO_PATH"
 echo "لائیو اسٹریم شروع ہو رہی ہے..."
 
 ffmpeg -re -stream_loop -1 -i "$LOCAL_VIDEO_PATH" \
-  -filter_complex "[0:v]split=2[fb_v][yt_pre];[yt_pre]scale=1080:-2,crop=1080:1920[yt_v]" \
+  -filter_complex "[0:v]split=2[fb_v][yt_pre];[yt_pre]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black[yt_v]" \
   -map "[fb_v]" -map 0:a \
   -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
   -c:a aac -b:a 160k -ar 44100 \
