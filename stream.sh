@@ -15,7 +15,7 @@ YOUTUBE_RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${YOUTUBE_STREAM_KEY}"
 FILE_ID=$(echo "$GOOGLE_DRIVE_LINK" | grep -oP '(?<=/d/)[a-zA-Z0-9_-]+')
 
 echo "Google Drive سے ویڈیو ڈاؤن لوڈ ہو رہی ہے..."
-gdown --id "$FILE_ID" -O "$LOCAL_VIDEO_PATH"
+gdown "$FILE_ID" -O "$LOCAL_VIDEO_PATH"
 echo "ڈاؤن لوڈ مکمل: $LOCAL_VIDEO_PATH"
 
 # ---------- بیک وقت Facebook (horizontal) اور YouTube (vertical) پر لائیو ----------
