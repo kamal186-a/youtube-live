@@ -8,14 +8,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Install FFmpeg and Fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget fonts-noto-core
+          sudo apt-get install -y ffmpeg wget fonts-noto-core fonts-noto-ui-core
 
       - name: Download Google Drive Video
         run: |
@@ -39,7 +38,7 @@ jobs:
             -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -loop 1 \
+            -ignore_loop 0 \
             -i subscribe.png \
             -filter_complex "
               [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
@@ -47,12 +46,10 @@ jobs:
 
               [1:v]scale=650:-1[subscribe];
 
-              [video][subscribe]
-              overlay=(W-w)/2:80[withsub];
+              [video][subscribe]overlay=(W-w)/2:80:shortest=1[withsub];
 
-              [withsub]
-              drawtext=text='یہ میرا نیا چینل ہے':
-              fontfile=/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf:
+              [withsub]drawtext=text='یہ میرا نیا چینل ہے':
+              fontfile=/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf:
               fontcolor=red:
               fontsize=110:
               x=(w-text_w)/4:
@@ -78,5 +75,6 @@ jobs:
             -b:a 128k \
             -ar 44100 \
             -ac 2 \
+            -flvflags no_duration_filesize \
             -f flv \
             "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
