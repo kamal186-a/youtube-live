@@ -1,44 +1,13 @@
-name: YouTube Vertical Live 1 - Loop
-
-on:
-  workflow_dispatch:
-
-jobs:
-  stream:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install FFmpeg and Fonts
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg wget fonts-noto-core fonts-noto-ui-core
-
-      - name: Download Google Drive Video
-        run: |
-          wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9&export=download&confirm=t" \
-            -O video.mp4
-
-      - name: Check Files
-        run: |
-          echo "Checking video..."
-          ls -lh video.mp4
-          echo "Checking Subscribe image..."
-          ls -lh subscribe.png
-
       - name: Start YouTube Vertical Live
         env:
-          STREAM_KEY: "mugb-swfp-7060-3fyr-acce"
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY1 }}
 
         run: |
           ffmpeg \
             -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -ignore_loop 0 \
+            -loop 1 \
             -i subscribe.png \
             -filter_complex "
               [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
