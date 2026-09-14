@@ -19,7 +19,7 @@ jobs:
       - name: Download Google Drive Video
         run: |
           wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1g2qbwK2zmJR3NQ5AORAekzBto9u3EwuT&export=download&confirm=t" \
+            "https://drive.usercontent.google.com/download?id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9&export=download&confirm=t" \
             -O video.mp4
 
       - name: Check Files
@@ -31,7 +31,7 @@ jobs:
 
       - name: Start YouTube Vertical Live
         env:
-          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY1 }}
+          STREAM_KEY: "mugb-swfp-7060-3fyr-acce"
 
         run: |
           ffmpeg \
