@@ -29,20 +29,20 @@ jobs:
             -of default=noprint_wrappers=1 \
             video.mp4
 
-      - name: Stream to YouTube
+     - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          if [ -z "$STREAM_KEY" ]; then
+          test -n "$STREAM_KEY" || {
             echo "ERROR: YOUTUBE_STREAM_KEY is missing"
             exit 1
-          fi
+          }
 
           ffmpeg \
             -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -vf "-vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2"" \
+            -vf 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2' \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6000k \
@@ -56,4 +56,5 @@ jobs:
             -b:a 128k \
             -ar 44100 \
             -f flv \
-            "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+```
