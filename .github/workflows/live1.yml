@@ -10,26 +10,31 @@ jobs:
 
     steps:
 
+      # 1. Install FFmpeg and Wget
       - name: Install FFmpeg and Wget
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg wget
 
+      # 2. Download Video from Google Drive
       - name: Download Google Drive Video
         run: |
           wget --no-check-certificate \
             "https://drive.usercontent.google.com/download?id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9&export=download&confirm=t" \
             -O video.mp4
 
+      # 3. Check Video
       - name: Check Video
         run: |
           ls -lh video.mp4
+
           ffprobe -v error \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
             video.mp4
 
-     - name: Stream to YouTube
+      # 4. Stream Vertical Video to YouTube
+      - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
@@ -57,4 +62,3 @@ jobs:
             -ar 44100 \
             -f flv \
             "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
-```
