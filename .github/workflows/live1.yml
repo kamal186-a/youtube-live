@@ -1,5 +1,5 @@
 ```yaml
-name: YouTube Vertical Live 1 - Loop
+name: Google Drive to YouTube Live
 
 on:
   workflow_dispatch:
@@ -7,64 +7,56 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
-      - name: Install FFmpeg and Fonts
+      # 1. Install FFmpeg and Wget
+      - name: Install FFmpeg and Wget
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget fonts-noto-core fonts-noto-ui-core
+          sudo apt-get install -y ffmpeg wget
 
+      # 2. Download Google Drive Video
       - name: Download Google Drive Video
         run: |
           wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9&export=download&confirm=t" \
+            "https://drive.google.com/uc?export=download&id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9" \
             -O video.mp4
 
-      - name: Check Files
+      # 3. Check Video
+      - name: Check Video
         run: |
-          echo "Checking video..."
           ls -lh video.mp4
-          echo "Checking Subscribe image..."
-          ls -lh subscribe.png
+          file video.mp4
+          ffprobe -v error \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            video.mp4
 
-      - name: Start YouTube Vertical Live
+      # 4. Stream to YouTube
+      - name: Stream to YouTube
         env:
-          STREAM_KEY: "mugb-swfp-7060-3fyr-acce"
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
 
         run: |
+          if [ -z "$STREAM_KEY" ]; then
+            echo "ERROR: YOUTUBE_STREAM_KEY secret is missing."
+            exit 1
+          fi
+
           ffmpeg \
             -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -ignore_loop 0 \
-            -i subscribe.png \
-            -filter_complex "
-              [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
-              pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
-              [1:v]scale=650:-1[subscribe];
-              [video][subscribe]overlay=(W-w)/2:80:shortest=1[withsub];
-              [withsub]drawtext=text='یہ میرا نیا چینل ہے':
-              fontfile=/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf:
-              fontcolor=red:
-              fontsize=110:
-              x=(w-text_w)/4:
-              y=h-220:
-              box=1:
-              boxcolor=white@0.95:
-              boxborderw=25[outv]
-            " \
-            -map "[outv]" \
-            -map 0:a? \
             -c:v libx264 \
             -preset veryfast \
-            -profile:v high \
             -pix_fmt yuv420p \
-            -b:v 6800k \
-            -maxrate 6800k \
-            -bufsize 13600k \
+            -profile:v high \
+            -level 4.2 \
+            -b:v 6000k \
+            -maxrate 6000k \
+            -bufsize 12000k \
             -r 30 \
             -g 60 \
             -keyint_min 60 \
@@ -73,7 +65,6 @@ jobs:
             -b:a 128k \
             -ar 44100 \
             -ac 2 \
-            -flvflags no_duration_filesize \
             -f flv \
-            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+            "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
 ```
