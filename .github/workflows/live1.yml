@@ -42,7 +42,7 @@ jobs:
             -re \
             -stream_loop -1 \
             -i video.mp4 \
-            -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" \
+            -vf "-vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2"" \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6000k \
