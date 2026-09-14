@@ -44,11 +44,8 @@ jobs:
             -filter_complex "
               [0:v]scale=1080:1920:force_original_aspect_ratio=decrease,
               pad=1080:1920:(ow-iw)/2:(oh-ih)/2[video];
-
               [1:v]scale=650:-1[subscribe];
-
               [video][subscribe]overlay=(W-w)/2:80:shortest=1[withsub];
-
               [withsub]drawtext=text='یہ میرا نیا چینل ہے':
               fontfile=/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf:
               fontcolor=red:
