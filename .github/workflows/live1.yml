@@ -1,4 +1,4 @@
-name: Google Drive 16 Videos to YouTube Live
+name: Stream Videos to YouTube
 
 on:
   workflow_dispatch:
@@ -9,16 +9,19 @@ jobs:
     timeout-minutes: 360
 
     steps:
+      # 1. Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # 1. Install FFmpeg and Gdown
-      - name: Install FFmpeg and Gdown
+      # 2. Install FFmpeg and gdown
+      - name: Install FFmpeg and gdown
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          pip install -U gdown
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install -U gdown
 
-      # 2. Download videos from Google Drive
-      - name: Download Google Drive Videos
+      # 3. Download all 16 videos from Google Drive folder
+      - name: Download videos
         run: |
           mkdir -p videos
 
@@ -29,66 +32,82 @@ jobs:
           echo "Downloaded files:"
           ls -lh videos
 
-      # 3. Check all 16 videos
-      - name: Check Videos
+      # 4. Check that all 16 videos exist
+      - name: Check videos
         run: |
-          for i in $(seq 1 16); do
+          for i in {1..16}; do
             if [ ! -f "videos/Video $i.mp4" ]; then
-              echo "ERROR: Video $i.mp4 not found!"
+              echo "ERROR: Video $i.mp4 is missing!"
               exit 1
             fi
           done
 
-          echo "All 16 videos found."
+          echo "All 16 videos found successfully."
 
-      # 4. Create playlist
-      - name: Create Playlist
+      # 5. Create FFmpeg concat list
+      - name: Create playlist
         run: |
           rm -f playlist.txt
 
-          for i in $(seq 1 16); do
+          for i in {1..16}; do
             echo "file 'videos/Video $i.mp4'" >> playlist.txt
           done
 
+          echo "Playlist:"
           cat playlist.txt
 
-      # 5. Combine all 16 videos into one video
-      - name: Combine Videos
+      # 6. Combine and normalize all videos
+      - name: Create combined video
         run: |
-          ffmpeg \
+          ffmpeg -y \
             -f concat \
             -safe 0 \
             -i playlist.txt \
             -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,format=yuv420p" \
+            -r 30 \
             -c:v libx264 \
             -preset veryfast \
-            -b:v 6000k \
-            -maxrate 6000k \
-            -bufsize 12000k \
+            -b:v 4500k \
+            -maxrate 4500k \
+            -bufsize 9000k \
+            -g 60 \
+            -keyint_min 60 \
+            -sc_threshold 0 \
             -c:a aac \
             -b:a 128k \
             -ar 44100 \
-            -avoid_negative_ts make_zero \
+            -ac 2 \
+            -movflags +faststart \
             combined.mp4
 
-          ls -lh combined.mp4
+      # 7. Show final video information
+      - name: Check combined video
+        run: |
+          ffprobe -hide_banner combined.mp4
 
-      # 6. Stream combined video to YouTube
+      # 8. Stream continuously to YouTube
       - name: Stream to YouTube
         env:
-          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
-
+          STREAM_KEY: ${{ secrets.STREAM_KEY }}
         run: |
-          test -n "$STREAM_KEY" || {
-            echo "ERROR: YOUTUBE_STREAM_KEY is missing"
-            exit 1
-          }
-
           ffmpeg \
             -re \
             -stream_loop -1 \
+            -fflags +genpts \
             -i combined.mp4 \
-            -c:v copy \
-            -c:a copy \
+            -c:v libx264 \
+            -preset veryfast \
+            -b:v 4500k \
+            -maxrate 4500k \
+            -bufsize 9000k \
+            -r 30 \
+            -g 60 \
+            -keyint_min 60 \
+            -sc_threshold 0 \
+            -pix_fmt yuv420p \
+            -c:a aac \
+            -b:a 128k \
+            -ar 44100 \
+            -ac 2 \
             -f flv \
-            "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+            "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
