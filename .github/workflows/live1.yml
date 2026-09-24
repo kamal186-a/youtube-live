@@ -1,4 +1,4 @@
-name: Google Drive to YouTube Live
+name: Google Drive 16 Videos to YouTube Live
 
 on:
   workflow_dispatch:
@@ -10,33 +10,52 @@ jobs:
 
     steps:
 
-      # 1. Install FFmpeg and Wget
-      - name: Install FFmpeg and Wget
+      - name: Install FFmpeg and Gdown
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget
+          sudo apt-get install -y ffmpeg
+          pip install gdown
 
-      # 2. Download Video from Google Drive
-      - name: Download Google Drive Video
+      - name: Download Google Drive Videos
         run: |
-          wget --no-check-certificate \
-            "https://drive.usercontent.google.com/download?id=1ZPrDCgbNEVwSh1gbjtP7bKjuyU2kksg9&export=download&confirm=t" \
-            -O video.mp4
+          mkdir -p videos
 
-      # 3. Check Video
-      - name: Check Video
+          gdown --folder \
+            "https://drive.google.com/drive/folders/1htbSr_XtI4XTTV_Cpq8Wypitv000SuTP?usp=sharing" \
+            -O videos \
+            --remaining-ok
+
+          echo "Downloaded files:"
+          ls -lh videos
+
+      - name: Create Playlist
         run: |
-          ls -lh video.mp4
+          rm -f playlist.txt
 
-          ffprobe -v error \
-            -show_entries format=duration \
-            -of default=noprint_wrappers=1 \
-            video.mp4
+          for i in $(seq 1 16); do
+            echo "file 'videos/Video $i.mp4'" >> playlist.txt
+          done
 
-      # 4. Stream Vertical Video to YouTube
+          echo "Playlist:"
+          cat playlist.txt
+
+      - name: Check Videos
+        run: |
+          ls -lh videos/
+
+          for i in $(seq 1 16); do
+            test -f "videos/Video $i.mp4" || {
+              echo "ERROR: Video $i.mp4 not found!"
+              exit 1
+            }
+          done
+
+          echo "All 16 videos found successfully."
+
       - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+
         run: |
           test -n "$STREAM_KEY" || {
             echo "ERROR: YOUTUBE_STREAM_KEY is missing"
@@ -46,7 +65,9 @@ jobs:
           ffmpeg \
             -re \
             -stream_loop -1 \
-            -i video.mp4 \
+            -f concat \
+            -safe 0 \
+            -i playlist.txt \
             -vf 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2' \
             -c:v libx264 \
             -preset veryfast \
