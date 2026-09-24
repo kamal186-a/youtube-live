@@ -17,7 +17,7 @@ jobs:
           sudo apt-get install -y ffmpeg
           pip install -U gdown
 
-      # 2. Download all videos from Google Drive folder
+      # 2. Download videos from Google Drive
       - name: Download Google Drive Videos
         run: |
           mkdir -p videos
@@ -29,15 +29,9 @@ jobs:
           echo "Downloaded files:"
           ls -lh videos
 
-      # 3. Rename files correctly if needed
+      # 3. Check all 16 videos
       - name: Check Videos
         run: |
-          echo "Files downloaded:"
-          find videos -maxdepth 1 -type f -printf '%f\n'
-
-          echo ""
-          echo "Checking Video 1 to Video 16..."
-
           for i in $(seq 1 16); do
             if [ ! -f "videos/Video $i.mp4" ]; then
               echo "ERROR: Video $i.mp4 not found!"
@@ -45,7 +39,7 @@ jobs:
             fi
           done
 
-          echo "SUCCESS: All 16 videos found!"
+          echo "All 16 videos found."
 
       # 4. Create playlist
       - name: Create Playlist
@@ -56,18 +50,30 @@ jobs:
             echo "file 'videos/Video $i.mp4'" >> playlist.txt
           done
 
-          echo "Playlist created:"
           cat playlist.txt
 
-      # 5. Check first video
-      - name: Check Video
+      # 5. Combine all 16 videos into one video
+      - name: Combine Videos
         run: |
-          ffprobe -v error \
-            -show_entries format=duration \
-            -of default=noprint_wrappers=1 \
-            "videos/Video 1.mp4"
+          ffmpeg \
+            -f concat \
+            -safe 0 \
+            -i playlist.txt \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,format=yuv420p" \
+            -c:v libx264 \
+            -preset veryfast \
+            -b:v 6000k \
+            -maxrate 6000k \
+            -bufsize 12000k \
+            -c:a aac \
+            -b:a 128k \
+            -ar 44100 \
+            -avoid_negative_ts make_zero \
+            combined.mp4
 
-      # 6. Stream all 16 videos to YouTube
+          ls -lh combined.mp4
+
+      # 6. Stream combined video to YouTube
       - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
@@ -81,21 +87,8 @@ jobs:
           ffmpeg \
             -re \
             -stream_loop -1 \
-            -f concat \
-            -safe 0 \
-            -i playlist.txt \
-            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2" \
-            -c:v libx264 \
-            -preset veryfast \
-            -b:v 6000k \
-            -maxrate 6000k \
-            -bufsize 12000k \
-            -pix_fmt yuv420p \
-            -g 60 \
-            -keyint_min 60 \
-            -sc_threshold 0 \
-            -c:a aac \
-            -b:a 128k \
-            -ar 44100 \
+            -i combined.mp4 \
+            -c:v copy \
+            -c:a copy \
             -f flv \
             "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
