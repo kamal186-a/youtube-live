@@ -6,9 +6,10 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 355
 
     steps:
+
       # 1. Checkout repository
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +21,7 @@ jobs:
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install -U gdown
 
-      # 3. Download all 16 videos from Google Drive folder
+      # 3. Download all 16 videos from Google Drive
       - name: Download videos
         run: |
           mkdir -p videos
@@ -32,31 +33,40 @@ jobs:
           echo "Downloaded files:"
           ls -lh videos
 
-      # 4. Check that all 16 videos exist
+      # 4. Check all 16 videos
       - name: Check videos
         run: |
-          for i in {1..16}; do
+          missing=0
+
+          for i in $(seq 1 16); do
             if [ ! -f "videos/Video $i.mp4" ]; then
               echo "ERROR: Video $i.mp4 is missing!"
-              exit 1
+              missing=1
             fi
           done
 
+          if [ "$missing" -eq 1 ]; then
+            echo "One or more videos are missing."
+            echo "Files actually downloaded:"
+            ls -la videos
+            exit 1
+          fi
+
           echo "All 16 videos found successfully."
 
-      # 5. Create FFmpeg concat list
+      # 5. Create playlist
       - name: Create playlist
         run: |
           rm -f playlist.txt
 
-          for i in {1..16}; do
+          for i in $(seq 1 16); do
             echo "file 'videos/Video $i.mp4'" >> playlist.txt
           done
 
           echo "Playlist:"
           cat playlist.txt
 
-      # 6. Combine and normalize all videos
+      # 6. Combine all 16 videos
       - name: Create combined video
         run: |
           ffmpeg -y \
@@ -80,17 +90,21 @@ jobs:
             -movflags +faststart \
             combined.mp4
 
-      # 7. Show final video information
+      # 7. Check combined video
       - name: Check combined video
         run: |
+          echo "===== VIDEO INFORMATION ====="
           ffprobe -hide_banner combined.mp4
+
+          echo "===== DISK SPACE ====="
+          df -h .
 
       # 8. Stream continuously to YouTube
       - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.STREAM_KEY }}
         run: |
-          ffmpeg \
+          timeout 21000 ffmpeg \
             -re \
             -stream_loop -1 \
             -fflags +genpts \
