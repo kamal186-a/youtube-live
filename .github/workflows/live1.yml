@@ -10,24 +10,44 @@ jobs:
 
     steps:
 
+      # 1. Install FFmpeg and Gdown
       - name: Install FFmpeg and Gdown
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install gdown
+          pip install -U gdown
 
+      # 2. Download all videos from Google Drive folder
       - name: Download Google Drive Videos
         run: |
           mkdir -p videos
 
           gdown --folder \
             "https://drive.google.com/drive/folders/1htbSr_XtI4XTTV_Cpq8Wypitv000SuTP?usp=sharing" \
-            -O videos \
-            --remaining-ok
+            -O videos
 
           echo "Downloaded files:"
           ls -lh videos
 
+      # 3. Rename files correctly if needed
+      - name: Check Videos
+        run: |
+          echo "Files downloaded:"
+          find videos -maxdepth 1 -type f -printf '%f\n'
+
+          echo ""
+          echo "Checking Video 1 to Video 16..."
+
+          for i in $(seq 1 16); do
+            if [ ! -f "videos/Video $i.mp4" ]; then
+              echo "ERROR: Video $i.mp4 not found!"
+              exit 1
+            fi
+          done
+
+          echo "SUCCESS: All 16 videos found!"
+
+      # 4. Create playlist
       - name: Create Playlist
         run: |
           rm -f playlist.txt
@@ -36,22 +56,18 @@ jobs:
             echo "file 'videos/Video $i.mp4'" >> playlist.txt
           done
 
-          echo "Playlist:"
+          echo "Playlist created:"
           cat playlist.txt
 
-      - name: Check Videos
+      # 5. Check first video
+      - name: Check Video
         run: |
-          ls -lh videos/
+          ffprobe -v error \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            "videos/Video 1.mp4"
 
-          for i in $(seq 1 16); do
-            test -f "videos/Video $i.mp4" || {
-              echo "ERROR: Video $i.mp4 not found!"
-              exit 1
-            }
-          done
-
-          echo "All 16 videos found successfully."
-
+      # 6. Stream all 16 videos to YouTube
       - name: Stream to YouTube
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
@@ -68,7 +84,7 @@ jobs:
             -f concat \
             -safe 0 \
             -i playlist.txt \
-            -vf 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2' \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2" \
             -c:v libx264 \
             -preset veryfast \
             -b:v 6000k \
